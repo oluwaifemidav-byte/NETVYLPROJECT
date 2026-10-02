@@ -1,0 +1,34 @@
+{
+  "version": "5",
+  "redirects": {
+    "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.117.2"
+  },
+  "remote": {
+    "https://deno.land/std@0.224.0/async/delay.ts": "f90dd685b97c2f142b8069082993e437b1602b8e2561134827eeb7c12b95c499",
+    "https://deno.land/std@0.224.0/http/server.ts": "f9313804bf6467a1704f45f76cb6cd0a3396a3b31c316035e6a4c2035d1ea514",
+    "https://esm.sh/@supabase/supabase-js@2.117.2": "6da4477d96ad4392b5a8be8f423384a3812cdd651df483e433ba422a69ff879b"
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@capacitor/android@^6.1.2",
+        "npm:@capacitor/app@^6.0.1",
+        "npm:@capacitor/cli@^6.1.2",
+        "npm:@capacitor/core@^6.1.2",
+        "npm:@capacitor/ios@^6.1.2",
+        "npm:@supabase/ssr@~0.5.1",
+        "npm:@supabase/supabase-js@^2.45.4",
+        "npm:@types/node@^20.16.10",
+        "npm:@types/react-dom@^18.3.0",
+        "npm:@types/react@^18.3.10",
+        "npm:electron-builder@^25.0.5",
+        "npm:electron@^32.1.2",
+        "npm:next@^14.2.15",
+        "npm:react-dom@^18.3.1",
+        "npm:react@^18.3.1",
+        "npm:tslib@^2.8.1",
+        "npm:typescript@^5.6.2"
+      ]
+    }
+  }
+}

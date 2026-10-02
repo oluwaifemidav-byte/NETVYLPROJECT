@@ -1,0 +1,7 @@
+import Link from 'next/link'
+export function PageHead({title,subtitle,actions}:{title:string,subtitle?:string,actions?:React.ReactNode}){return <div className="page-head"><div><div className="kicker">NETVYL WORKSPACE</div><h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</div>{actions&&<div className="actions">{actions}</div>}</div>}
+export function Empty({title='Nothing here yet',text='There is no data to display.'}){return <div className="empty-state"><div className="empty-icon">○</div><strong>{title}</strong><span>{text}</span></div>}
+export function StatCard({label,value,detail,icon}:{label:string,value:React.ReactNode,detail?:string,icon:string}){return <div className="card metric"><div className="metric-top"><span>{label}</span><span className="metric-icon">{icon}</span></div><h2>{value}</h2><small>{detail||'Live from your workspace'}</small></div>}
+export function Badge({children,tone='neutral'}:{children:React.ReactNode,tone?:string}){return <span className={`badge ${tone}`}>{children}</span>}
+export function Money({value}:{value:any}){return <>₦{Number(value||0).toLocaleString('en-NG',{minimumFractionDigits:0,maximumFractionDigits:2})}</>}
+export function QuickLink({href,icon,title,text}:{href:string,icon:string,title:string,text:string}){return <Link className="quick" href={href}><span className="qicon">{icon}</span><span><strong>{title}</strong><small>{text}</small></span><b>›</b></Link>}

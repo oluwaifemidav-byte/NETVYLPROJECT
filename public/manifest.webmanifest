@@ -1,0 +1,9 @@
+{
+  "name": "NETVYL Business Management Platform",
+  "short_name": "NETVYL",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0d0f13",
+  "theme_color": "#a51f4d",
+  "icons": []
+}

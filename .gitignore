@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+dist/
+.env.local
+.env*
+!.env.example
+!.env.desktop.example
+.DS_Store
+*.log
+*.tsbuildinfo
+android/
+ios/
+supabase/.temp/

@@ -1,0 +1,31 @@
+appId: com.netvyl.businessmanager
+productName: NETVYL Business Management Platform
+artifactName: NETVYL-Business-Management-Platform-${version}-${arch}.${ext}
+directories:
+  output: dist
+files:
+  - .next/standalone/**
+  - .next/static/**
+  - public/**
+  - electron/**
+  - package.json
+extraResources:
+  - from: .next/standalone
+    to: next-server
+win:
+  target:
+    - nsis
+    - portable
+  executableName: NETVYLBusinessManager
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+mac:
+  category: public.app-category.business
+  target:
+    - dmg
+linux:
+  target:
+    - AppImage
