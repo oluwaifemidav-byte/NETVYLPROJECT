@@ -73,15 +73,29 @@ export default function Activate() {
     setMessage('')
 
     try {
+      const adminEmail = form.adminEmail.trim()
+      const adminPassword = form.password
+      const fullName = form.adminName.trim()
+
+      const signUpResult = await supabase.auth.signUp({
+        email: adminEmail,
+        password: adminPassword,
+        options: { data: { full_name: fullName } },
+      })
+
+      if (signUpResult.error) {
+        throw new Error(signUpResult.error.message)
+      }
+
       const payload = {
         p_license_key: form.licenseKey.trim(),
         p_buyer_email: form.buyerEmail.trim(),
-        p_admin_name: form.adminName.trim(),
-        p_admin_email: form.adminEmail.trim(),
+        p_admin_name: fullName,
+        p_admin_email: adminEmail,
         p_device_id: deviceId(),
         p_device_name: form.deviceName.trim(),
         p_platform: form.platform,
-        p_password: form.password,
+        p_password: adminPassword,
       }
 
       const { error: rpcError } = await supabase.rpc('activate_netvyl_license', payload)

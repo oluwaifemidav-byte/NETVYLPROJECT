@@ -3029,7 +3029,10 @@ create or replace function public.activate_netvyl_license(
   p_device_id text,
   p_device_name text default 'NETVYL Device',
   p_platform text default 'web',
-  p_app_version text default null
+  p_app_version text default null,
+  p_admin_name text default null,
+  p_admin_email text default null,
+  p_password text default null
 )
 returns table(success boolean,message text,organization_id uuid,organization_name text,license_id uuid,expires_at timestamptz,plan text,device_count integer,max_devices integer)
 language plpgsql security definer set search_path=public as $$
@@ -3064,7 +3067,7 @@ begin
   select count(*) into v_count from public.license_devices where license_id=l.id and active=true;
   return query select true,'License activated successfully',o.id,o.name,l.id,l.expires_at,l.plan,v_count,greatest(1,coalesce(l.max_devices,1));
 end; $$;
-grant execute on function public.activate_netvyl_license(text,text,text,text,text,text) to anon,authenticated;
+grant execute on function public.activate_netvyl_license(text,text,text,text,text,text,text,text,text) to anon,authenticated;
 
 -- ------------------------------------------------------------
 -- 8. Support session RPCs
