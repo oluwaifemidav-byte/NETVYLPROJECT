@@ -11,8 +11,8 @@ export default function ForgotPassword(){
 
   async function submit(e:React.FormEvent){
     e.preventDefault(); setBusy(true); setMessage(''); setError('')
-    const origin=window.location.origin
-    const {error}=await supabaseBrowser().auth.resetPasswordForEmail(email.trim(),{redirectTo:`${origin}/update-password`})
+    const redirectBase = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+    const {error}=await supabaseBrowser().auth.resetPasswordForEmail(email.trim(),{redirectTo:`${redirectBase}/update-password`})
     if(error) setError(error.message)
     else setMessage('Password reset instructions have been sent. Open the email and use the secure link to create a new password.')
     setBusy(false)
