@@ -3043,6 +3043,7 @@ declare
   v_count integer;
   v_max integer;
   v_device_id uuid;
+  v_user_id uuid;
 begin
   if nullif(trim(p_license_key),'') is null then raise exception 'License key is required'; end if;
   select * into l from public.licenses where upper(license_key)=upper(trim(p_license_key)) limit 1;
@@ -3054,6 +3055,25 @@ begin
   end if;
   if l.status <> 'active' or not l.active then return query select false,'This license is not active',o.id,o.name,l.id,l.expires_at,l.plan,0,coalesce(l.max_devices,1); return; end if;
   if l.expires_at is not null and l.expires_at < now() then return query select false,'This license has expired. Please renew it.',o.id,o.name,l.id,l.expires_at,l.plan,0,coalesce(l.max_devices,1); return; end if;
+
+  if p_admin_email is not null and trim(p_admin_email) <> '' then
+    select id into v_user_id
+    from auth.users
+    where lower(email) = lower(trim(p_admin_email))
+    limit 1;
+
+    if v_user_id is null then
+      return query select false,'Administrator account was not created yet. Please complete signup before activation.',o.id,o.name,l.id,l.expires_at,l.plan,0,coalesce(l.max_devices,1); return;
+    end if;
+
+    insert into public.organization_members(organization_id,user_id,full_name,role,active)
+    values(o.id,v_user_id,coalesce(nullif(trim(p_admin_name),''),'Administrator'),'administrator',true)
+    on conflict (organization_id,user_id) do update
+      set full_name = excluded.full_name,
+          role = 'administrator',
+          active = true;
+  end if;
+
   v_hash:=encode(digest(trim(p_device_id),'sha256'),'hex');
   select id into v_device_id from public.license_devices where license_id=l.id and device_hash=v_hash and active=true limit 1;
   if v_device_id is not null then

@@ -12,3 +12,6 @@ dist/
 android/
 ios/
 supabase/.temp/
+
+.vercel
+.env*

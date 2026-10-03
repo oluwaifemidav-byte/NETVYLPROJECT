@@ -84,7 +84,21 @@ export default function Activate() {
       })
 
       if (signUpResult.error) {
-        throw new Error(signUpResult.error.message)
+        const message = signUpResult.error.message.toLowerCase()
+        const isExistingUser = message.includes('already registered') || message.includes('user already') || message.includes('already exists')
+
+        if (!isExistingUser) {
+          throw new Error(signUpResult.error.message)
+        }
+
+        const signInResult = await supabase.auth.signInWithPassword({
+          email: adminEmail,
+          password: adminPassword,
+        })
+
+        if (signInResult.error || !signInResult.data.user) {
+          throw new Error(signInResult.error?.message || 'This account already exists and could not be signed in.')
+        }
       }
 
       const payload = {
