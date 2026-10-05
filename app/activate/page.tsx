@@ -128,10 +128,6 @@ export default function Activate() {
   }
 
   const closePage = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back()
-      return
-    }
     router.push('/login')
   }
 
