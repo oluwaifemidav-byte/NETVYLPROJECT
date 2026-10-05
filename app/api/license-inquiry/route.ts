@@ -39,6 +39,54 @@ async function readPaymentContact() {
   }
 }
 
+function getServiceRoleClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE
+
+  if (!url || !key) return null
+
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
+
+async function saveLicenseRequest(record: {
+  name: string
+  business_name: string
+  email: string
+  seats: number
+  package_code: string
+  package_name: string
+  source: string
+}) {
+  const admin = getServiceRoleClient()
+  if (!admin) return { saved: false, reason: 'missing_service_role_key' }
+
+  const payload = {
+    name: record.name,
+    business_name: record.business_name,
+    email: record.email,
+    seats: record.seats,
+    package_code: record.package_code,
+    package_name: record.package_name,
+    source: record.source,
+    status: 'new',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+
+  const { error } = await admin.from('license_requests').insert([payload])
+  if (error) {
+    return {
+      saved: false,
+      reason: error.message,
+      code: error.code,
+    }
+  }
+
+  return { saved: true }
+}
+
 export async function GET() {
   const contact = await readPaymentContact()
   const recipient = String(contact?.payment_email || '').trim() || toCleanString(
@@ -98,6 +146,16 @@ export async function POST(req: Request) {
     const replyTo = toCleanString(process.env.NETVYL_REPLY_TO_EMAIL, 254)
     const resolvedPackageName = packageName || packageCode
 
+    const persisted = await saveLicenseRequest({
+      name,
+      business_name: business,
+      email,
+      seats: numericSeats,
+      package_code: packageCode,
+      package_name: resolvedPackageName,
+      source: 'register_page',
+    })
+
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:680px;margin:auto;padding:28px;color:#20222a">
         <h2 style="margin:0 0 8px">New NETVYL License Inquiry</h2>
@@ -125,6 +183,10 @@ export async function POST(req: Request) {
         html,
       }),
     })
+
+    if (!persisted.saved) {
+      console.warn('License inquiry saved without pending review row:', persisted.reason || 'unknown')
+    }
 
     const sendResult = await sendResponse.json().catch(() => ({}))
     if (!sendResponse.ok) {
