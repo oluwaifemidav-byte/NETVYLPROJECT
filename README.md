@@ -36,6 +36,8 @@ Use Supabase SQL Editor and run:
 
 Run it after the existing NETVYL/V34 baseline migrations. It is additive and preserves existing organization data.
 
+Then run `supabase/buyer-membership-activation-fix.sql` in the Supabase SQL Editor. It assigns existing buyer accounts to active organizations and repairs buyer membership when an organization or license is activated in the future.
+
 ### New Supabase project
 
 Use Supabase SQL Editor and run:
@@ -43,6 +45,8 @@ Use Supabase SQL Editor and run:
 `supabase/NETVYL-FRESH-INSTALL.sql`
 
 This is the consolidated installation script containing the required baseline plus V36 completion migration.
+
+Then run `supabase/buyer-membership-activation-fix.sql` in the Supabase SQL Editor so license buyers receive organization access.
 
 Do not run the individual historical migration files; they are intentionally consolidated to reduce setup mistakes.
 

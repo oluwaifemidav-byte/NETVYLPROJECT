@@ -317,7 +317,7 @@ export default function Login() {
       // Find active administrator/super admin membership
       // -----------------------------------------------------
 
-      const {
+      let {
         data: memberships,
         error: memberError,
       } = await supabase
@@ -342,11 +342,30 @@ export default function Login() {
         )
       }
 
-      const membership =
+      let membership =
         (memberships || []).find(
           row =>
             ['administrator', 'super_admin'].includes(String(row.role || '').trim().toLowerCase())
         )
+
+      // Recover legacy buyer accounts that have an active license but were
+      // never added to organization_members during organization activation.
+      if (!membership) {
+        const { error: claimError } = await supabase.rpc('netvyl_claim_buyer_membership')
+        if (!claimError) {
+          const refreshed = await supabase
+            .from('organization_members')
+            .select('organization_id,role,active')
+            .eq('user_id', data.user.id)
+            .eq('active', true)
+          if (!refreshed.error) {
+            memberships = refreshed.data
+            membership = (memberships || []).find(
+              row => ['administrator', 'super_admin'].includes(String(row.role || '').trim().toLowerCase())
+            )
+          }
+        }
+      }
 
       if (
         !membership?.organization_id
