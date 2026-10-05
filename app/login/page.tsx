@@ -345,8 +345,7 @@ export default function Login() {
       const membership =
         (memberships || []).find(
           row =>
-            row.role === 'administrator' ||
-            row.role === 'super_admin'
+            ['administrator', 'super_admin'].includes(String(row.role || '').trim().toLowerCase())
         )
 
       if (
@@ -462,7 +461,7 @@ export default function Login() {
         <p>
           {platformConfig.login_banner || (mode === 'staff'
             ? 'Sign in with your registered full name and Staff ID.'
-            : 'Use your administrator or Master Admin account.')}
+            : 'Use the Administrator Email and password entered during license activation, or your Master Admin account.')}
         </p>
 
         {/* =================================================

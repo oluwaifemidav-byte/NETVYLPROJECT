@@ -112,13 +112,18 @@ export default function Activate() {
         p_password: adminPassword,
       }
 
-      const { error: rpcError } = await supabase.rpc('activate_netvyl_license', payload)
+      const { data: activation, error: rpcError } = await supabase.rpc('activate_netvyl_license', payload)
 
       if (rpcError) {
         throw new Error(rpcError.message)
       }
 
-      setMessage('License activated successfully. Redirecting…')
+      const result = Array.isArray(activation) ? activation[0] : activation
+      if (result?.success !== true) {
+        throw new Error(result?.message || 'The license could not be activated. Check the license, buyer email, and device limit.')
+      }
+
+      setMessage('License activated successfully. Sign in with the Administrator Email and password you created above.')
       setTimeout(() => router.push('/login'), 900)
     } catch (caught: any) {
       setError(caught?.message || 'Unable to activate the license. Please check your details and try again.')
@@ -208,6 +213,10 @@ export default function Activate() {
               required
             />
           </label>
+
+          <small style={{ display: 'block', marginTop: -8 }}>
+            This is the login email for the organization administrator. Buyer Email is only used to verify the license.
+          </small>
 
           <label>
             Create Password
