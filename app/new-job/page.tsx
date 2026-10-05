@@ -850,8 +850,11 @@ export default function NewJobPage() {
       ]
     )
 
-  const isDIService = selectedService?.calculator_type
-    ? selectedService.calculator_type === 'direct_image'
+  const selectedCalculator = String(selectedService?.calculator_type || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+  const selectedServiceName = String(selectedService?.name || '').toLowerCase()
+
+  const isDIService = selectedCalculator
+    ? ['direct_image', 'direct_image_printing'].includes(selectedCalculator) || (selectedCalculator === 'generic' && /direct image|di printing/.test(selectedServiceName))
     : service === 'direct-image' ||
       service === 'di' ||
       (
@@ -866,8 +869,8 @@ export default function NewJobPage() {
         .includes('di ')
     )
 
-  const isProductionService = selectedService?.calculator_type
-    ? selectedService.calculator_type === 'large_format'
+  const isProductionService = selectedCalculator
+    ? ['large_format', 'large_format_printing'].includes(selectedCalculator) || (selectedCalculator === 'generic' && selectedServiceName.includes('large format'))
     : service === 'large-format' ||
       service === 'dtf' ||
       (
@@ -1093,8 +1096,8 @@ export default function NewJobPage() {
     materialTotal +
     printCutCharge
 
-  const isDTFService = selectedService?.calculator_type
-    ? selectedService.calculator_type === 'dtf'
+  const isDTFService = selectedCalculator
+    ? ['dtf', 'dtf_printing'].includes(selectedCalculator) || (selectedCalculator === 'generic' && selectedServiceName.includes('dtf'))
     : service === 'dtf' ||
       (
       selectedService?.name
@@ -1103,9 +1106,10 @@ export default function NewJobPage() {
     )
 
   const isGenericService =
-    selectedService?.calculator_type === 'generic' &&
+    selectedCalculator === 'generic' &&
     !isDIService &&
-    !isDTFService
+    !isDTFService &&
+    !isProductionService
 
   const selectedGenericRule = servicePricingRules.find(rule => rule.id === genericRuleId)
   const genericQty = Math.max(1, Math.floor(Number(genericQuantity) || 1))

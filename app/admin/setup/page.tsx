@@ -14,6 +14,7 @@ const emptyItem={name:'',sku:'',category:'material',item_kind:'material',base_un
 const emptyRule={name:'',service_id:'',pricing_basis:'fixed',rate:0,minimum_charge:0,active:true}
 
 const PRINTING_SERVICE_SUGGESTIONS = [
+  { name: 'Large Format Printing', code: 'large_format', category: 'printing', calculator_type: 'large_format' },
   { name: 'Direct Image Printing', code: 'direct_image_printing', category: 'printing', calculator_type: 'direct_image' },
   { name: 'Sublimation Printing', code: 'sublimation_printing', category: 'printing', calculator_type: 'generic' },
   { name: 'Screen Printing', code: 'screen_printing', category: 'printing', calculator_type: 'generic' },
