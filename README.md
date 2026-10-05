@@ -38,6 +38,8 @@ Run it after the existing NETVYL/V34 baseline migrations. It is additive and pre
 
 Then run `supabase/buyer-membership-activation-fix.sql` in the Supabase SQL Editor. It assigns existing buyer accounts to active organizations and repairs buyer membership when an organization or license is activated in the future.
 
+If Business Setup reports that `public.pricing_rules` is missing, also run `supabase/business-setup-pricing-rules-fix.sql` in the SQL Editor. This safely creates the missing table, applies organization access policies, and reloads the API schema cache.
+
 ### New Supabase project
 
 Use Supabase SQL Editor and run:
@@ -47,6 +49,8 @@ Use Supabase SQL Editor and run:
 This is the consolidated installation script containing the required baseline plus V36 completion migration.
 
 Then run `supabase/buyer-membership-activation-fix.sql` in the Supabase SQL Editor so license buyers receive organization access.
+
+Then run `supabase/business-setup-pricing-rules-fix.sql` to ensure the pricing configuration table is present.
 
 Do not run the individual historical migration files; they are intentionally consolidated to reduce setup mistakes.
 
