@@ -59,6 +59,17 @@ type ServiceType = {
   name: string
   description: string
   available: boolean
+  calculator_type?: string
+}
+
+type ServicePricingRule = {
+  id: string
+  service_id: string | null
+  name: string
+  pricing_basis: string
+  rate: number
+  minimum_charge: number
+  active: boolean
 }
 
 type OrderLine = {
@@ -91,42 +102,49 @@ const DEFAULT_SERVICES: ServiceType[] = [
     name: 'Large Format Printing',
     description: 'Flex, SAV, Clear SAV, Reflective SAV and Window Graphic.',
     available: true,
+    calculator_type: 'large_format',
   },
   {
     id: 'dtf',
     name: 'DTF Printing',
     description: 'DTF garment printing.',
     available: true,
+    calculator_type: 'dtf',
   },
   {
     id: 'direct-image',
     name: 'Direct Image Printing',
     description: 'Flyers, brochures, booklets and direct image products.',
     available: true,
+    calculator_type: 'direct_image',
   },
   {
     id: 'sublimation',
     name: 'Sublimation Printing',
     description: 'Mugs, tiles, apparel, signage and custom textile items.',
     available: false,
+    calculator_type: 'generic',
   },
   {
     id: 'screen-printing',
     name: 'Screen Printing',
     description: 'Bulk garment printing and branded apparel work.',
     available: false,
+    calculator_type: 'generic',
   },
   {
     id: 'vinyl-cutting',
     name: 'Vinyl Cutting & Plotting',
     description: 'Vehicle graphics, stickers, labels and signage.',
     available: false,
+    calculator_type: 'generic',
   },
   {
     id: 'uv-printing',
     name: 'UV Printing',
     description: 'Rigid materials, panels, acrylic and signage boards.',
     available: false,
+    calculator_type: 'generic',
   },
 ]
 
@@ -289,6 +307,8 @@ export default function NewJobPage() {
     ServiceType[]
   >([])
 
+  const [servicePricingRules, setServicePricingRules] = useState<ServicePricingRule[]>([])
+
   const [customers, setCustomers] = useState<
     Customer[]
   >([])
@@ -335,6 +355,11 @@ export default function NewJobPage() {
   /* SERVICE */
   const [service, setService] =
     useState<string>('large-format')
+
+  const [genericDescription, setGenericDescription] = useState('')
+  const [genericQuantity, setGenericQuantity] = useState('1')
+  const [genericUnitPrice, setGenericUnitPrice] = useState('0')
+  const [genericRuleId, setGenericRuleId] = useState('')
 
   const [inventoryItems, setInventoryItems] =
     useState<InventoryItem[]>([])
@@ -504,6 +529,7 @@ export default function NewJobPage() {
         materialResult,
         inventoryResult,
         customerResult,
+        pricingResult,
       ] = await Promise.all([
         supabase
           .from('business_services')
@@ -561,6 +587,13 @@ export default function NewJobPage() {
             organizationId
           )
           .order('name'),
+
+        supabase
+          .from('pricing_rules')
+          .select('id,service_id,name,pricing_basis,rate,minimum_charge,active')
+          .eq('organization_id', organizationId)
+          .eq('active', true)
+          .order('name'),
       ])
 
       if (!mounted) return
@@ -589,6 +622,10 @@ export default function NewJobPage() {
         )
       }
 
+      if (pricingResult.error) {
+        setError(`Unable to load service prices: ${pricingResult.error.message}`)
+      }
+
       const loadedServices = (
         serviceResult.data || []
       ).map(item => ({
@@ -596,14 +633,13 @@ export default function NewJobPage() {
         name: item.name,
         description: item.category || 'Printing service',
         available: true,
+        calculator_type: item.calculator_type || 'generic',
       }))
 
       const fallbackServices =
         loadedServices.length > 0
           ? loadedServices
           : DEFAULT_SERVICES
-
-      setServices(fallbackServices)
 
       const loadedInventory =
         (inventoryResult.data || []) as InventoryItem[]
@@ -721,6 +757,12 @@ export default function NewJobPage() {
         )
       )
 
+      setServices(fallbackServices.map(item => ({
+        ...item,
+        calculator_type: item.calculator_type || 'generic',
+      })))
+      setServicePricingRules((pricingResult.data || []) as ServicePricingRule[])
+
       if (
         largeFormatDefaults.length > 0 &&
         (!materialId || !largeFormatDefaults.some(item => item.id === materialId))
@@ -808,10 +850,11 @@ export default function NewJobPage() {
       ]
     )
 
-  const isDIService =
-    service === 'direct-image' ||
-    service === 'di' ||
-    (
+  const isDIService = selectedService?.calculator_type
+    ? selectedService.calculator_type === 'direct_image'
+    : service === 'direct-image' ||
+      service === 'di' ||
+      (
       selectedService?.name
         ?.toLowerCase()
         .includes('direct image') ||
@@ -823,10 +866,11 @@ export default function NewJobPage() {
         .includes('di ')
     )
 
-  const isProductionService =
-    service === 'large-format' ||
-    service === 'dtf' ||
-    (
+  const isProductionService = selectedService?.calculator_type
+    ? selectedService.calculator_type === 'large_format'
+    : service === 'large-format' ||
+      service === 'dtf' ||
+      (
       selectedService?.name
         ?.toLowerCase()
         .includes('large format') ||
@@ -1049,18 +1093,32 @@ export default function NewJobPage() {
     materialTotal +
     printCutCharge
 
-  const isDTFService =
-    service === 'dtf' ||
-    (
+  const isDTFService = selectedService?.calculator_type
+    ? selectedService.calculator_type === 'dtf'
+    : service === 'dtf' ||
+      (
       selectedService?.name
         ?.toLowerCase()
         .includes('dtf')
     )
 
+  const isGenericService =
+    selectedService?.calculator_type === 'generic' &&
+    !isDIService &&
+    !isDTFService
+
+  const selectedGenericRule = servicePricingRules.find(rule => rule.id === genericRuleId)
+  const genericQty = Math.max(1, Math.floor(Number(genericQuantity) || 1))
+  const genericRate = selectedGenericRule ? num(selectedGenericRule.rate) : num(genericUnitPrice)
+  const genericSubtotal = selectedGenericRule?.pricing_basis === 'fixed'
+    ? genericRate
+    : genericQty * genericRate
+  const genericTotal = Math.max(genericSubtotal, num(selectedGenericRule?.minimum_charge))
+
   useEffect(() => {
     if (
       !service ||
-      service !== 'large-format' ||
+      !isProductionService ||
       isDIService ||
       isDTFService
     ) {
@@ -1073,10 +1131,12 @@ export default function NewJobPage() {
     ) {
       setMaterialId(largeFormatMaterials[0].id)
     }
-  }, [service, isDIService, isDTFService, largeFormatMaterials, materialId])
+  }, [service, isProductionService, isDIService, isDTFService, largeFormatMaterials, materialId])
 
   const currentGrandTotal =
-    isDIService
+    isGenericService
+      ? genericTotal
+      : isDIService
       ? diBaseCharge +
         diPrintCharge +
         diDesignCharge +
@@ -1179,6 +1239,10 @@ export default function NewJobPage() {
     setDtfUnit('in')
     setDtfQuantity('1')
     setDtfFinishingPrice('0')
+    setGenericDescription('')
+    setGenericQuantity('1')
+    setGenericUnitPrice('0')
+    setGenericRuleId('')
   }
 
   function addJobToQueue() {
@@ -1189,6 +1253,40 @@ export default function NewJobPage() {
       setError(
         'Select a service before adding the job.'
       )
+      return
+    }
+
+    if (isGenericService) {
+      const lineTotal = genericTotal
+      if (lineTotal <= 0) {
+        setError('Enter a service price above zero before adding this job.')
+        return
+      }
+      const line: OrderLine = {
+        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+        service,
+        materialId: '',
+        inventoryItemId: null,
+        materialName: genericDescription.trim() || selectedService?.name || 'Custom service',
+        width: 0,
+        height: 0,
+        unit: 'in',
+        quantity: genericQty,
+        billedSqFt: 0,
+        linearLengthFt: 0,
+        materialRate: genericRate,
+        materialTotal: genericSubtotal,
+        printCut: false,
+        printCutRate: 0,
+        printCutCharge: 0,
+        designCharge: 0,
+        finishingCharge: 0,
+        productionTotal: lineTotal,
+        grandTotal: lineTotal,
+      }
+      setOrderLines(previous => [...previous, line])
+      resetCalculator()
+      setSuccess(`${selectedService?.name || 'Service'} job added to the order queue.`)
       return
     }
 
@@ -1672,13 +1770,13 @@ export default function NewJobPage() {
         const inventoryItem = inventoryItems.find(
           item => item.id === line.inventoryItemId
         )
-        if (!inventoryItem) {
+        if (!inventoryItem && line.inventoryItemId) {
           throw new Error(`${line.materialName} is no longer available in inventory.`)
         }
 
-        const metadata = inventoryItem.metadata as Record<string, unknown> | null
+        const metadata = (inventoryItem?.metadata || null) as Record<string, unknown> | null
         const stockUnit = String(
-          metadata?.stock_unit || inventoryItem.base_unit || 'pcs'
+          metadata?.stock_unit || inventoryItem?.base_unit || 'piece'
         ).toLowerCase()
         const consumesLinearFeet =
           (stockUnit === 'ft' || stockUnit === 'linear_ft') &&
@@ -1688,7 +1786,7 @@ export default function NewJobPage() {
           : line.quantity
         const consumptionUnit =
           stockUnit === 'linear_ft' ? 'ft' : stockUnit
-        const itemCost = num(inventoryItem.cost_per_unit) * consumptionQuantity
+        const itemCost = num(inventoryItem?.cost_per_unit) * consumptionQuantity
 
         return {
           service_id: uuidPattern.test(line.service) ? line.service : null,
@@ -1705,16 +1803,16 @@ export default function NewJobPage() {
             finishing_charge: line.finishingCharge,
           },
           quantity: line.quantity,
-          unit: consumptionUnit,
+          unit: inventoryItem ? consumptionUnit : 'piece',
           unit_price: line.grandTotal / Math.max(1, line.quantity),
           line_total: line.grandTotal,
           estimated_cost: itemCost,
-          consumption: [{
+          consumption: inventoryItem ? [{
             inventory_item_id: inventoryItem.id,
             quantity: consumptionQuantity,
             unit: consumptionUnit,
             cost: itemCost,
-          }],
+          }] : [],
         }
       })
 
@@ -1735,6 +1833,9 @@ export default function NewJobPage() {
           orderError.message
         )
       ) {
+        if (orderLines.some(line => !line.inventoryItemId)) {
+          throw new Error('Generic service jobs require the V36 order database migration. Apply the V36 commercial database migration, then try again.')
+        }
         let remainingPayment = actualPaymentAmount
 
         for (let index = 0; index < orderLines.length; index++) {
@@ -2009,11 +2110,12 @@ export default function NewJobPage() {
 
             <select
               value={service}
-              onChange={e =>
-                setService(
-                  e.target.value
-                )
-              }
+              onChange={e => {
+                setService(e.target.value)
+                setGenericRuleId('')
+                setGenericUnitPrice('0')
+                setGenericDescription('')
+              }}
             >
               {services.map(
                 item => (
@@ -2028,6 +2130,7 @@ export default function NewJobPage() {
                     {
                       item.name
                     }
+                    {item.calculator_type ? ` · ${item.calculator_type.replaceAll('_', ' ')}` : ''}
                     {!item.available
                       ? ' — Coming soon'
                       : ''}
@@ -2036,6 +2139,45 @@ export default function NewJobPage() {
               )}
             </select>
           </label>
+
+          {isGenericService && (
+            <section className="card" style={{ marginTop: 16 }}>
+              <div className="section-head">
+                <div>
+                  <h3>{selectedService?.name} calculator</h3>
+                  <span>Set a description, quantity and price. No stock item is required.</span>
+                </div>
+                <Badge tone="wine">Generic</Badge>
+              </div>
+              <label>Price option
+                <select value={genericRuleId} onChange={e=>{
+                  const ruleId=e.target.value
+                  setGenericRuleId(ruleId)
+                  const selected=servicePricingRules.find(rule=>rule.id===ruleId)
+                  if(selected)setGenericUnitPrice(String(selected.rate||0))
+                }}>
+                  <option value="">Enter a custom price</option>
+                  {servicePricingRules.filter(rule=>!rule.service_id||rule.service_id===service).map(rule=>(
+                    <option key={rule.id} value={rule.id}>{rule.name} · {rule.pricing_basis.replaceAll('_',' ')} · ₦{Number(rule.rate||0).toLocaleString()}</option>
+                  ))}
+                </select>
+              </label>
+              <label>Job description
+                <input value={genericDescription} onChange={e=>setGenericDescription(e.target.value)} placeholder={`e.g. ${selectedService?.name} service`}/>
+              </label>
+              <div className="grid2">
+                <label>Quantity
+                  <input type="number" min="1" step="1" value={genericQuantity} onChange={e=>setGenericQuantity(e.target.value)}/>
+                </label>
+                <label>{selectedGenericRule?.pricing_basis==='fixed'?'Fixed job price':'Price per item'}
+                  <input type="number" min="0" step="0.01" value={genericUnitPrice} onChange={e=>{setGenericRuleId('');setGenericUnitPrice(e.target.value)}}/>
+                </label>
+              </div>
+              {selectedGenericRule?.minimum_charge ? <p className="cell-sub">Minimum charge: ₦{Number(selectedGenericRule.minimum_charge).toLocaleString()}</p> : null}
+              <div className="order-total"><span>Job total</span><strong>₦{genericTotal.toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></div>
+              <button type="button" className="btn primary wide" disabled={genericTotal<=0} onClick={addJobToQueue}>+ Add Job to Order</button>
+            </section>
+          )}
 
           {isDIService && (
             <div
@@ -2528,7 +2670,7 @@ export default function NewJobPage() {
             </>
           )}
 
-          {!isDIService && !isDTFService && service === 'large-format' && (
+          {!isDIService && !isDTFService && isProductionService && (
             <>
               <div
                 className="section-head"
