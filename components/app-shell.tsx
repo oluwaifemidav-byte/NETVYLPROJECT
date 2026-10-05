@@ -17,7 +17,7 @@ const groups:{label:string;items:NavItem[]}[]=[
 const routeRoles:Record<string,Role[]>={'/dashboard':ALL,'/customers':['super_admin','administrator','manager','staff','cashier'],'/new-job':['super_admin','administrator','manager','staff'],'/jobs':['super_admin','administrator','manager','staff','production'],'/print-station':['super_admin','administrator','manager','staff','production'],'/production':['super_admin','administrator','manager','staff','production'],'/quotes':['super_admin','administrator','manager','staff'],'/purchasing':['administrator'],'/expenses':['super_admin','administrator','manager'],'/delivery':['super_admin','administrator','manager','staff','production'],'/notifications':ALL,'/payments':['super_admin','administrator','manager','cashier'],'/receipts':['super_admin','administrator','manager','cashier'],'/inventory':['super_admin','administrator','manager'],'/inventory/labels':['super_admin','administrator'],'/reports':['super_admin','administrator','manager'],'/admin':['super_admin','administrator','manager'],'/admin/setup':['administrator'],'/admin/backup':['administrator'],'/master-admin':['super_admin']}
 const SUPPORT_KEY='netvyl-support-organization'
 const WORKSPACE_CACHE_KEY='netvyl-workspace-cache'
-const PUBLIC_PATHS=['/login','/forgot-password','/update-password','/activate']
+const PUBLIC_PATHS=['/login','/forgot-password','/update-password','/activate','/register']
 
 function readWorkspaceCache(){
   if(typeof window==='undefined') return null

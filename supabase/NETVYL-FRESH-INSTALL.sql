@@ -2650,6 +2650,10 @@ DROP POLICY IF EXISTS subscription_plans_select ON public.subscription_plans;
 DROP POLICY IF EXISTS subscription_plans_platform_write ON public.subscription_plans;
 CREATE POLICY subscription_plans_select ON public.subscription_plans
 FOR SELECT TO authenticated USING (active=true OR public.netvyl_is_platform_super_admin());
+DROP POLICY IF EXISTS subscription_plans_public_select ON public.subscription_plans;
+CREATE POLICY subscription_plans_public_select ON public.subscription_plans
+FOR SELECT TO anon USING (active=true);
+GRANT SELECT ON public.subscription_plans TO anon, authenticated;
 CREATE POLICY subscription_plans_platform_write ON public.subscription_plans
 FOR ALL TO authenticated
 USING (public.netvyl_is_platform_super_admin())

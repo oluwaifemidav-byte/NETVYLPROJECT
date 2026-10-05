@@ -764,6 +764,10 @@ export default function Login() {
             Activate NETVYL License
           </a>
 
+          <a href="/register">
+            Purchase a NETVYL License
+          </a>
+
         </div>
 
             <small className="auth-foot">
