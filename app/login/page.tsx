@@ -419,10 +419,6 @@ export default function Login() {
           <div className="welcome-panel">
             <div className="welcome-brand">
               <div className="brand-mark welcome-mark">N</div>
-              <div>
-                <div className="brand-name welcome-brand-name">{platformConfig.app_name}</div>
-                <div className="brand-sub welcome-brand-sub">{platformConfig.app_tagline}</div>
-              </div>
             </div>
             <div className="welcome-banner">Welcome</div>
           </div>

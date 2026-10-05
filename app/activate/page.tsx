@@ -127,9 +127,41 @@ export default function Activate() {
     }
   }
 
+  const closePage = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+      return
+    }
+    router.push('/login')
+  }
+
   return (
     <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24 }}>
       <section className="card" style={{ maxWidth: 560, width: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+          <button
+            type="button"
+            aria-label="Close page"
+            title="Close page"
+            onClick={closePage}
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              border: '1px solid #ddd9de',
+              background: '#fff',
+              color: '#4a4349',
+              fontSize: 28,
+              lineHeight: 1,
+              cursor: 'pointer',
+              display: 'grid',
+              placeItems: 'center',
+            }}
+          >
+            ×
+          </button>
+        </div>
+
         <div className="brand-block" style={{ marginBottom: 20 }}>
           <div className="brand-mark large">N</div>
           <div>
