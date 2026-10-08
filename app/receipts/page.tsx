@@ -50,11 +50,20 @@ type Organization = {
   receipt_footer?: string
 }
 
+type Customer = {
+  id: string
+  name?: string | null
+  phone?: string | null
+  email?: string | null
+  address?: string | null
+}
+
 type ReceiptGroup = {
   key: string
   receiptNo: string
   customerName: string
   customerId: string
+  customer: Customer | null
   date: string
   jobs: Job[]
   payments: Payment[]
@@ -123,6 +132,9 @@ export default function ReceiptsPage() {
   const [payments, setPayments] =
     useState<Payment[]>([])
 
+  const [customers, setCustomers] =
+    useState<Customer[]>([])
+
   const [loading, setLoading] =
     useState(true)
 
@@ -154,6 +166,7 @@ export default function ReceiptsPage() {
         organizationResult,
         jobsResult,
         paymentsResult,
+        customersResult,
       ] = await Promise.all([
         supabase
           .from('organizations')
@@ -247,6 +260,11 @@ export default function ReceiptsPage() {
               ascending: false,
             }
           ),
+
+        supabase
+          .from('customers')
+          .select('id,name,phone,email,address')
+          .eq('organization_id', organizationId),
       ])
 
       if (organizationResult.error) {
@@ -286,6 +304,16 @@ export default function ReceiptsPage() {
           (paymentsResult.data ||
             []) as Payment[]
         )
+      }
+
+      if (customersResult.error) {
+        console.warn(
+          'Customer receipt details:',
+          customersResult.error.message
+        )
+        setCustomers([])
+      } else {
+        setCustomers((customersResult.data || []) as Customer[])
       }
 
       if (
@@ -341,6 +369,9 @@ export default function ReceiptsPage() {
               'Walk-in Customer',
             customerId:
               job.customer_id || '',
+            customer: job.customer_id
+              ? customers.find(customer => customer.id === job.customer_id) || null
+              : null,
             date:
               job.job_date,
             jobs: [],
@@ -455,6 +486,7 @@ export default function ReceiptsPage() {
   }, [
     jobs,
     payments,
+    customers,
   ])
 
   const filteredReceipts =
@@ -830,6 +862,11 @@ export default function ReceiptsPage() {
                 receipt.customerName
               )}
             </div>
+
+            ${[receipt.customer?.phone, receipt.customer?.email, receipt.customer?.address]
+              .filter(Boolean)
+              .map(value => `<div>${escapeHtml(String(value))}</div>`)
+              .join('')}
 
             <div>
               <strong>
@@ -1483,6 +1520,10 @@ export default function ReceiptsPage() {
                     selectedReceipt.customerName
                   }
                 </div>
+
+                {selectedReceipt.customer?.phone && <div><strong>Phone:</strong> {selectedReceipt.customer.phone}</div>}
+                {selectedReceipt.customer?.email && <div><strong>Email:</strong> {selectedReceipt.customer.email}</div>}
+                {selectedReceipt.customer?.address && <div><strong>Address:</strong> {selectedReceipt.customer.address}</div>}
 
                 <div>
                   <strong>
