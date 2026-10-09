@@ -202,6 +202,10 @@ export default function Home() {
           <div>Phone: <a href="tel:+2348107992687" style={{ color: '#bfdbfe' }}>+234 810 799 2687</a></div>
           <div>WhatsApp: <a href="https://wa.me/2348107992687" target="_blank" rel="noreferrer" style={{ color: '#bbf7d0' }}>+234 810 799 2687</a></div>
           <div>Website: <a href="https://www.netvyl.online" target="_blank" rel="noreferrer" style={{ color: '#bfdbfe' }}>www.netvyl.online</a></div>
+          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(148, 163, 184, 0.2)' }}>
+            <Link href="/terms" style={{ color: '#bfdbfe' }}>Terms &amp; Conditions</Link>
+            <Link href="/disclaimer" style={{ color: '#bfdbfe' }}>Disclaimer</Link>
+          </div>
           <div style={{ marginTop: 8, color: '#f8fafc', fontWeight: 700 }}>NETVYL Business Solutions • Smart Operations • Better Growth</div>
         </div>
       </section>

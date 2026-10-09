@@ -149,6 +149,7 @@ export default function LicenseContactPage() {
         <label>Business name<input required maxLength={160} value={business} onChange={e => setBusiness(e.target.value)} /></label>
         <label>Business email<input required type="email" maxLength={254} value={email} onChange={e => setEmail(e.target.value)} /></label>
         <label>Expected number of users<input required type="number" min={1} max={500} value={seats} onChange={e => setSeats(e.target.value)} /></label>
+        <p className="cell-sub">By continuing, you acknowledge the <a href="/terms">Terms &amp; Conditions</a> and <a href="/disclaimer">Disclaimer</a>.</p>
         <button className="btn primary wide" type="submit" disabled={contactLoading || submitting}>{submitting ? 'Submitting…' : 'Email NETVYL about a license'}</button>
         {submitMessage && <div className={`notice ${submitFailed ? 'error' : ''}`} role="status">{submitMessage}</div>}
         <div style={{ textAlign: 'center' }}><a href="/login">Back to sign in</a></div>

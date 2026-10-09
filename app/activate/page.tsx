@@ -271,6 +271,8 @@ export default function Activate() {
           {error && <div className="notice error">{error}</div>}
           {message && <div className="notice">{message}</div>}
 
+          <p className="cell-sub">By activating and using NETVYL, you agree to the <a href="/terms">Terms &amp; Conditions</a>. Please also read the <a href="/disclaimer">Disclaimer</a>.</p>
+
           <button
             type="submit"
             className="btn primary wide"

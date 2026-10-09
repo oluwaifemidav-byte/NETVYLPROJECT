@@ -127,6 +127,10 @@ Artifacts are written to `dist/`.
 7. Opening stock and staff are configured.
 8. The company can immediately use New Job → Production → Payment → Delivery.
 
+## Admin user guide
+
+For step-by-step instructions for Company Administrators and NETVYL Master Admins, see [ADMIN-GUIDE.md](ADMIN-GUIDE.md). It covers workspace setup, staff and permissions, daily operations, backups, licensing and platform administration.
+
 ## Important permissions
 
 Company Administrator is the only normal company role allowed to:
