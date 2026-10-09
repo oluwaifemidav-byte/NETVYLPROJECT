@@ -53,6 +53,7 @@ export default function Dashboard() {
   const [customers, setCustomers] = useState(0)
   const [inventory, setInventory] = useState<InventoryItem[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [overdueOrders, setOverdueOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -66,7 +67,7 @@ export default function Dashboard() {
     setLoading(true)
     setError('')
 
-    const [jobsResult, customersResult, inventoryResult, expensesResult] =
+    const [jobsResult, customersResult, inventoryResult, expensesResult, overdueResult] =
       await Promise.all([
         supabase
           .from('jobs')
@@ -95,13 +96,23 @@ export default function Dashboard() {
           .from('expenses')
           .select('amount,expense_date')
           .eq('organization_id', organizationId),
+        supabase
+          .from('job_orders')
+          .select('id,order_no,customer_name_snapshot,due_at,status')
+          .eq('organization_id', organizationId)
+          .not('due_at', 'is', null)
+          .not('status', 'in', '("completed","delivered","cancelled")')
+          .lt('due_at', new Date().toISOString())
+          .order('due_at', { ascending: true })
+          .limit(1000),
       ])
 
     const firstError =
       jobsResult.error ||
       customersResult.error ||
       inventoryResult.error ||
-      expensesResult.error
+      expensesResult.error ||
+      overdueResult.error
 
     if (firstError) setError(firstError.message)
 
@@ -109,6 +120,7 @@ export default function Dashboard() {
     setCustomers(customersResult.count || 0)
     setInventory((inventoryResult.data || []) as InventoryItem[])
     setExpenses((expensesResult.data || []) as Expense[])
+    setOverdueOrders(overdueResult.data || [])
     setLoading(false)
   }
 
@@ -229,6 +241,13 @@ export default function Dashboard() {
             <StatCard label="Net operating result" value={<Money value={netOperatingResult} />} icon="=" />
             <StatCard label="Low-stock items" value={lowStockItems} icon="◫" />
           </div>
+
+          {overdueOrders.length > 0 && <section className="card" style={{ marginTop: 18, borderColor: '#d99b45' }}>
+            <div className="section-head"><div><h3>Overdue orders · {overdueOrders.length}</h3><span>These open orders have passed their due date.</span></div><Link className="text-link" href="/jobs">Review jobs →</Link></div>
+            <div className="tablewrap"><table><thead><tr><th>Order</th><th>Customer</th><th>Due</th><th>Status</th></tr></thead><tbody>
+              {overdueOrders.slice(0, 8).map(order => <tr key={order.id}><td><strong>{order.order_no}</strong></td><td>{order.customer_name_snapshot || '—'}</td><td>{new Date(order.due_at).toLocaleString('en-NG')}</td><td><Badge tone="danger">{String(order.status || 'open').replaceAll('_', ' ')}</Badge></td></tr>)}
+            </tbody></table></div>
+          </section>}
 
           <div className="stats" style={{ marginTop: 14 }}>
             <StatCard label="Pending" value={statusCount('pending')} icon="•" />

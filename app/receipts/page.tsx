@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabaseBrowser } from '../../lib/supabase-browser'
 import { getActiveOrganizationId } from '../../lib/organization-context'
 import { PageHead, Badge } from '../../components/ui'
+import { whatsappLink } from '../../lib/whatsapp'
 
 type Job = {
   id: string
@@ -558,6 +559,11 @@ export default function ReceiptsPage() {
   function refresh() {
     setRefreshing(true)
     void loadReceipts()
+  }
+
+  function customerUpdateLink(receipt: ReceiptGroup) {
+    const text = `Hello ${receipt.customerName}, update for receipt ${receipt.receiptNo}: total ${money(receipt.total)}, paid ${money(receipt.paid)}, balance ${money(receipt.balance)}. Status: ${receipt.status}. Thank you.`
+    return whatsappLink(receipt.customer?.phone, text)
   }
 
   function printReceipt(
@@ -1425,6 +1431,8 @@ export default function ReceiptsPage() {
                   gap: 8,
                 }}
               >
+
+                {customerUpdateLink(selectedReceipt) && <a className="btn" href={customerUpdateLink(selectedReceipt)!} target="_blank" rel="noreferrer">WhatsApp customer</a>}
 
                 <button
                   className="btn primary"
