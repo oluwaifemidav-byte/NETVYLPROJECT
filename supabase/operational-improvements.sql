@@ -1,6 +1,19 @@
 -- Activity history for delivery, artwork and approval changes.
 -- Apply to existing NETVYL V36 databases after the core V36 schema.
 
+-- Add lifecycle fields first so the function and Delivery page work on older databases.
+alter table public.job_orders add column if not exists delivery_status text not null default 'not_required';
+alter table public.job_orders add column if not exists delivery_address text;
+alter table public.job_orders add column if not exists delivery_date date;
+alter table public.job_orders add column if not exists delivered_at timestamptz;
+alter table public.job_orders add column if not exists artwork_status text not null default 'not_required';
+alter table public.job_orders add column if not exists approval_status text not null default 'not_required';
+alter table public.job_orders add column if not exists approved_at timestamptz;
+alter table public.job_orders add column if not exists approved_by uuid references auth.users(id);
+
+create index if not exists idx_job_orders_delivery
+  on public.job_orders(organization_id, delivery_status, due_at);
+
 create or replace function public.netvyl_update_order_lifecycle(
   p_order_id uuid,
   p_delivery_status text default null,

@@ -98,7 +98,10 @@ export default function BackupPage() {
       if (!recipeIds.length) return rows
       for (let offset = 0; ; offset += 1000) {
         const { data, error: queryError } = await supabase.from(table).select('*').in('recipe_id', recipeIds).order('id', { ascending: true }).range(offset, offset + 999)
-        if (queryError) throw new Error(`${table}: ${queryError.message}`)
+        if (queryError) {
+          if (queryError.code === 'PGRST205' || queryError.code === '42P01') throw new Error(`[optional table missing] ${table}`)
+          throw new Error(`${table}: ${queryError.message}`)
+        }
         rows.push(...(data || []))
         if (!data || data.length < 1000) return rows
       }
@@ -106,18 +109,35 @@ export default function BackupPage() {
     for (let offset = 0; ; offset += 1000) {
       const { data, error: queryError } = await supabase.from(table).select('*')
         .eq('organization_id', organizationId).order('id', { ascending: true }).range(offset, offset + 999)
-      if (queryError) throw new Error(`${table}: ${queryError.message}`)
+      if (queryError) {
+        if (queryError.code === 'PGRST205' || queryError.code === '42P01') throw new Error(`[optional table missing] ${table}`)
+        throw new Error(`${table}: ${queryError.message}`)
+      }
       rows.push(...(data || []))
       if (!data || data.length < 1000) return rows
     }
+  }
+
+  async function readAvailableTables() {
+    const tables: Record<string, any[]> = {}
+    const skipped: string[] = []
+    for (const table of BACKUP_TABLES) {
+      try {
+        tables[table] = await readTable(table)
+      } catch (caught: any) {
+        const message = String(caught?.message || '')
+        if (!message.startsWith('[optional table missing]')) throw caught
+        skipped.push(message.replace('[optional table missing] ', ''))
+      }
+    }
+    return { tables, skipped }
   }
 
   async function createBackup() {
     if (!organizationId || !isAdmin || busy) return
     setBusy(true); setError(''); setMessage('')
     try {
-      const tables: Record<string, any[]> = {}
-      for (const table of BACKUP_TABLES) tables[table] = await readTable(table)
+      const { tables, skipped } = await readAvailableTables()
       const snapshot: BackupData = {
         format: 'netvyl-organization-backup-v1',
         organization_id: organizationId,
@@ -132,7 +152,8 @@ export default function BackupPage() {
       anchor.download = `NETVYL-backup-${organizationId}-${new Date().toISOString().slice(0, 10)}.json`
       anchor.click()
       URL.revokeObjectURL(url)
-      setMessage(`Backup downloaded with ${Object.values(tables).reduce((sum, rows) => sum + rows.length, 0)} records across ${BACKUP_TABLES.length} tables.`)
+      const skippedMessage = skipped.length ? ` Missing tables skipped: ${skipped.join(', ')}.` : ''
+      setMessage(`Backup downloaded with ${Object.values(tables).reduce((sum, rows) => sum + rows.length, 0)} records across ${Object.keys(tables).length} tables.${skippedMessage}`)
     } catch (caught: any) {
       setError(caught?.message || 'Unable to create a complete backup.')
     } finally { setBusy(false) }
@@ -142,8 +163,7 @@ export default function BackupPage() {
     if (!organizationId || !isAdmin || busy) return
     setBusy(true); setError(''); setMessage('')
     try {
-      const tables: Record<string, any[]> = {}
-      for (const table of BACKUP_TABLES) tables[table] = await readTable(table)
+      const { tables, skipped } = await readAvailableTables()
       const createdAt = new Date()
       const snapshot: BackupData = {
         format: 'netvyl-organization-backup-v1',
@@ -160,7 +180,8 @@ export default function BackupPage() {
       )
       if (uploadError) throw new Error(uploadError.message)
       const rowCount = Object.values(tables).reduce((sum, rows) => sum + rows.length, 0)
-      setMessage(`Cloud backup saved with ${rowCount} records across ${BACKUP_TABLES.length} tables.`)
+      const skippedMessage = skipped.length ? ` Missing tables skipped: ${skipped.join(', ')}.` : ''
+      setMessage(`Cloud backup saved with ${rowCount} records across ${Object.keys(tables).length} tables.${skippedMessage}`)
       await loadCloudBackups()
     } catch (caught: any) {
       setError(caught?.message || 'Unable to save a complete cloud backup.')
@@ -198,7 +219,7 @@ export default function BackupPage() {
     setBusy(true); setError(''); setMessage('')
     let restored = 0
     try {
-      for (const table of BACKUP_TABLES) {
+      for (const table of BACKUP_TABLES.filter(candidate => Object.prototype.hasOwnProperty.call(backup.tables, candidate))) {
         const rows = backup.tables[table] || []
         for (let offset = 0; offset < rows.length; offset += 100) {
           const batch = rows.slice(offset, offset + 100)
