@@ -670,6 +670,42 @@ drop policy if exists "v36 notifications write" on public.notifications;
 create policy "v36 notifications read" on public.notifications for select to authenticated using((user_id=auth.uid()) or (user_id is null and organization_id in(select public.user_org_ids())) or public.is_platform_admin());
 create policy "v36 notifications write" on public.notifications for all to authenticated using(public.netvyl_can_operate_org_v36(organization_id)) with check(public.netvyl_can_operate_org_v36(organization_id));
 
+-- ---------- administrator announcements to organization staff ----------
+create or replace function public.netvyl_send_staff_announcement(
+  p_org_id uuid,
+  p_title text,
+  p_body text
+) returns integer
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare sent_count integer;
+begin
+  if auth.uid() is null or not public.netvyl_is_org_admin(p_org_id)
+     or public.netvyl_has_support_access(p_org_id) then
+    raise exception 'Company administrator access required';
+  end if;
+  if nullif(trim(p_title), '') is null or length(trim(p_title)) > 120 then
+    raise exception 'Title is required and must be 120 characters or fewer';
+  end if;
+  if nullif(trim(p_body), '') is null or length(trim(p_body)) > 2000 then
+    raise exception 'Message is required and must be 2000 characters or fewer';
+  end if;
+
+  insert into public.notifications(organization_id,user_id,kind,title,body,entity_type)
+  select p_org_id,om.user_id,'announcement',trim(p_title),trim(p_body),'announcement'
+  from public.organization_members om
+  where om.organization_id=p_org_id
+    and om.active=true
+    and om.role in ('manager','staff','cashier','production');
+  get diagnostics sent_count = row_count;
+  return sent_count;
+end;
+$$;
+revoke all on function public.netvyl_send_staff_announcement(uuid,text,text) from public;
+grant execute on function public.netvyl_send_staff_announcement(uuid,text,text) to authenticated;
+
 -- ---------- delivery / approval / artwork ----------
 create or replace function public.netvyl_update_order_lifecycle(
  p_order_id uuid,
