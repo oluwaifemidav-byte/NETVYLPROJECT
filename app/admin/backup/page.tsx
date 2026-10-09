@@ -24,6 +24,12 @@ type BackupData = {
   tables: Record<string, any[]>
 }
 
+type CloudBackup = {
+  name: string
+  created_at?: string
+  updated_at?: string
+}
+
 export default function BackupPage() {
   const organizationId = getActiveOrganizationId()
   const supabase = useMemo(() => supabaseBrowser(), [])
@@ -33,6 +39,21 @@ export default function BackupPage() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [cloudBackups, setCloudBackups] = useState<CloudBackup[]>([])
+  const [historyError, setHistoryError] = useState('')
+  const [downloadingRun, setDownloadingRun] = useState('')
+
+  async function loadCloudBackups() {
+    if (!organizationId) return
+    const { data, error: queryError } = await supabase.storage.from('netvyl-org-backups')
+      .list(organizationId, { limit: 100, sortBy: { column: 'created_at', order: 'desc' } })
+    if (queryError) {
+      setHistoryError('Cloud backups need a one-time storage setup. Run supabase/manual-cloud-backups.sql in the Supabase SQL Editor.')
+      return
+    }
+    setHistoryError('')
+    setCloudBackups((data || []).filter(file => file.name.endsWith('.json')))
+  }
 
   useEffect(() => {
     let active = true
@@ -48,9 +69,26 @@ export default function BackupPage() {
       if (!active) return
       setOrganizationName(organization?.name || 'Organization')
       setIsAdmin(member?.role === 'administrator')
+      if (member?.role === 'administrator') await loadCloudBackups()
     })()
     return () => { active = false }
   }, [organizationId, supabase])
+
+  async function downloadCloudBackup(file: CloudBackup) {
+    setDownloadingRun(file.name); setError('')
+    const filename = `NETVYL-cloud-backup-${organizationId}-${file.name}`
+    const { data, error: signedUrlError } = await supabase.storage.from('netvyl-org-backups')
+      .createSignedUrl(`${organizationId}/${file.name}`, 60, { download: filename })
+    if (signedUrlError || !data?.signedUrl) {
+      setError(signedUrlError?.message || 'Could not create a download link for this backup.')
+      setDownloadingRun('')
+      return
+    }
+    const anchor = document.createElement('a')
+    anchor.href = data.signedUrl
+    anchor.click()
+    setDownloadingRun('')
+  }
 
   async function readTable(table: string) {
     const rows: any[] = []
@@ -97,6 +135,35 @@ export default function BackupPage() {
       setMessage(`Backup downloaded with ${Object.values(tables).reduce((sum, rows) => sum + rows.length, 0)} records across ${BACKUP_TABLES.length} tables.`)
     } catch (caught: any) {
       setError(caught?.message || 'Unable to create a complete backup.')
+    } finally { setBusy(false) }
+  }
+
+  async function createCloudBackup() {
+    if (!organizationId || !isAdmin || busy) return
+    setBusy(true); setError(''); setMessage('')
+    try {
+      const tables: Record<string, any[]> = {}
+      for (const table of BACKUP_TABLES) tables[table] = await readTable(table)
+      const createdAt = new Date()
+      const snapshot: BackupData = {
+        format: 'netvyl-organization-backup-v1',
+        organization_id: organizationId,
+        organization_name: organizationName,
+        created_at: createdAt.toISOString(),
+        tables,
+      }
+      const path = `${organizationId}/${createdAt.getTime()}.json`
+      const { error: uploadError } = await supabase.storage.from('netvyl-org-backups').upload(
+        path,
+        new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' }),
+        { contentType: 'application/json', upsert: false },
+      )
+      if (uploadError) throw new Error(uploadError.message)
+      const rowCount = Object.values(tables).reduce((sum, rows) => sum + rows.length, 0)
+      setMessage(`Cloud backup saved with ${rowCount} records across ${BACKUP_TABLES.length} tables.`)
+      await loadCloudBackups()
+    } catch (caught: any) {
+      setError(caught?.message || 'Unable to save a complete cloud backup.')
     } finally { setBusy(false) }
   }
 
@@ -160,7 +227,22 @@ export default function BackupPage() {
     <section className="card" style={{ marginTop: 18 }}>
       <div className="section-head"><div><h3>Create a backup</h3><span>Includes customers, jobs, payments, inventory, orders, quotes, expenses and activity records.</span></div></div>
       <p>Keep the downloaded JSON file somewhere separate from this computer. Staff accounts, licenses, platform configuration and uploaded attachment files are excluded.</p>
+      <button className="btn primary" onClick={createCloudBackup} disabled={!isAdmin || busy}>{busy ? 'Working...' : 'Back up now to cloud'}</button>
       <button className="btn primary" onClick={createBackup} disabled={!isAdmin || busy}>{busy ? 'Working…' : 'Download organization backup'}</button>
+    </section>
+    <section className="card" style={{ marginTop: 16 }}>
+      <div className="section-head"><div><h3>Cloud backups</h3><span>Private snapshots saved for this organization.</span></div>
+        <button className="btn" onClick={loadCloudBackups} disabled={!isAdmin}>Refresh</button>
+      </div>
+      {historyError && <p className="notice" style={{ marginTop: 12 }}>{historyError}</p>}
+      {!historyError && cloudBackups.length === 0 && <p>No cloud backups yet. Select "Back up now to cloud" to save the first one.</p>}
+      {cloudBackups.map(file => <div key={file.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 0', borderTop: '1px solid var(--line, #e5e7eb)' }}>
+        <div>
+          <strong>Saved</strong> · {new Date(file.created_at || file.updated_at || Number(file.name.replace('.json', ''))).toLocaleString('en-NG')}
+          <div style={{ fontSize: 13, opacity: .75 }}>Organization snapshot</div>
+        </div>
+        <button className="btn" onClick={() => downloadCloudBackup(file)} disabled={downloadingRun === file.name}>{downloadingRun === file.name ? 'Preparing...' : 'Download snapshot'}</button>
+      </div>)}
     </section>
     <section className="card" style={{ marginTop: 16 }}>
       <div className="section-head"><div><h3>Restore or verify a backup</h3><span>Choose a NETVYL backup to validate it before merging its records.</span></div></div>
