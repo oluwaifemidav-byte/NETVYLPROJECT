@@ -25,6 +25,7 @@ type Job = {
   amount_paid: number
   receipt_no: string | null
   status: string
+  created_by?: string | null
   deleted_at?: string | null
 }
 
@@ -38,6 +39,7 @@ type Payment = {
   method: string | null
   reference: string | null
   notes: string | null
+  created_by?: string | null
 }
 
 type Organization = {
@@ -71,6 +73,7 @@ type ReceiptGroup = {
   paid: number
   balance: number
   status: 'PAID' | 'PART PAYMENT' | 'UNPAID'
+  attendedBy: string
 }
 
 const money = (value: unknown) =>
@@ -134,6 +137,9 @@ export default function ReceiptsPage() {
 
   const [customers, setCustomers] =
     useState<Customer[]>([])
+
+  const [creatorNames, setCreatorNames] =
+    useState<Record<string, string>>({})
 
   const [loading, setLoading] =
     useState(true)
@@ -207,6 +213,7 @@ export default function ReceiptsPage() {
             amount_paid,
             receipt_no,
             status,
+            created_by,
             deleted_at
           `
           )
@@ -247,7 +254,8 @@ export default function ReceiptsPage() {
             amount,
             method,
             reference,
-            notes
+            notes,
+            created_by
           `
           )
           .eq(
@@ -316,6 +324,21 @@ export default function ReceiptsPage() {
         setCustomers((customersResult.data || []) as Customer[])
       }
 
+      const creatorIds = Array.from(new Set([
+        ...((jobsResult.data || []).map((job: any) => job.created_by).filter(Boolean)),
+        ...((paymentsResult.data || []).map((payment: any) => payment.created_by).filter(Boolean)),
+      ])) as string[]
+      if (creatorIds.length) {
+        const { data: members } = await supabase
+          .from('organization_members')
+          .select('user_id,full_name')
+          .eq('organization_id', organizationId)
+          .in('user_id', creatorIds)
+        setCreatorNames(Object.fromEntries((members || []).map((member: any) => [member.user_id, member.full_name]).filter(([, name]) => Boolean(name))))
+      } else {
+        setCreatorNames({})
+      }
+
       if (
         organizationResult.data
       ) {
@@ -381,12 +404,15 @@ export default function ReceiptsPage() {
             balance: 0,
             status:
               'UNPAID',
+            attendedBy: creatorNames[job.created_by || ''] || '',
           }
         )
       }
 
       const receipt =
         map.get(key)!
+
+      if (!receipt.attendedBy && job.created_by) receipt.attendedBy = creatorNames[job.created_by] || ''
 
       receipt.jobs.push(job)
 
@@ -432,6 +458,8 @@ export default function ReceiptsPage() {
         )
 
       if (!receipt) continue
+
+      if (!receipt.attendedBy && payment.created_by) receipt.attendedBy = creatorNames[payment.created_by] || ''
 
       receipt.payments.push(
         payment
@@ -487,6 +515,7 @@ export default function ReceiptsPage() {
     jobs,
     payments,
     customers,
+    creatorNames,
   ])
 
   const filteredReceipts =
@@ -862,6 +891,8 @@ export default function ReceiptsPage() {
                 receipt.customerName
               )}
             </div>
+
+            ${receipt.attendedBy ? `<div><strong>Attended by:</strong> ${escapeHtml(receipt.attendedBy)}</div>` : ''}
 
             ${[receipt.customer?.phone, receipt.customer?.email, receipt.customer?.address]
               .filter(Boolean)
@@ -1520,6 +1551,8 @@ export default function ReceiptsPage() {
                     selectedReceipt.customerName
                   }
                 </div>
+
+                {selectedReceipt.attendedBy && <div><strong>Attended by:</strong> {selectedReceipt.attendedBy}</div>}
 
                 {selectedReceipt.customer?.phone && <div><strong>Phone:</strong> {selectedReceipt.customer.phone}</div>}
                 {selectedReceipt.customer?.email && <div><strong>Email:</strong> {selectedReceipt.customer.email}</div>}

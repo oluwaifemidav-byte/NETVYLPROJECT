@@ -182,6 +182,7 @@ a { color: inherit; }
 }
 .page-title { font: 800 18px "Segoe UI", sans-serif; margin-top: 2px; }
 .top-actions { display: flex; align-items: center; gap: 9px; }
+.signed-in-name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; color: #777; }
 .page-close {
   width: 35px;
   height: 35px;
@@ -673,6 +674,7 @@ input:focus, select:focus, textarea:focus { border-color: #b36a82; box-shadow: 0
   .stats { grid-template-columns: 1fr; }
   .card { padding: 15px; }
   .topbar { height: 68px; }
+  .signed-in-name { max-width: 110px; }
   .avatar { display: none; }
 }
 

@@ -169,6 +169,11 @@ export default function Home() {
           </div>
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap', marginTop: 24, padding: 20, borderRadius: 16, background: 'rgba(30, 41, 59, 0.7)', border: '1px solid rgba(148, 163, 184, 0.25)' }}>
+          <img src="/netvyl-online-qr.svg" alt="QR code linking to https://www.netvyl.online" width="144" height="144" style={{ background: 'white', borderRadius: 8, padding: 8 }} />
+          <div><strong style={{ display: 'block', color: '#f8fafc', fontSize: 18 }}>Scan to visit NETVYL</strong><span style={{ display: 'block', marginTop: 6 }}>Open <a href="https://www.netvyl.online" target="_blank" rel="noreferrer" style={{ color: '#bfdbfe' }}>www.netvyl.online</a> on your phone.</span><a href="/netvyl-online-qr.svg" download style={{ display: 'inline-block', marginTop: 10, color: '#a7f3d0', fontWeight: 700 }}>Download QR code</a></div>
+        </div>
+
         <div
           style={{
             marginTop: 28,
